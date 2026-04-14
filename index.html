@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Weather App Project</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+
+<div class="card">
+    <div class="search">
+        <input type="text" placeholder="enter city name" 
+        spellcheck="false"> 
+        <button><img src="images/search.png"></button>
+    </div>
+    <div class="error">
+        <p>Invalid city name. Please try again.</p>
+    </div>
+    <div class="weather">
+        <img src="images/rain.png" class="weather-icon">
+        <h1 class="temp">7°C</h1>
+        <h2 class="city">London</h2>
+        <h3 class="time"></h3>
+        <div class="details">
+            <div class="col">
+                <img src="images/humidity.png">
+                <div>
+                    <p class="humidity">91%</p>
+                    <p>Humidity</p>
+                </div>
+            </div>
+             <div class="col">
+                <img src="images/wind.png">
+                <div>
+                    <p class="wind">5 mph</p>
+                    <p>Wind Speed</p>
+                </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+const apiKey = "9c0a134f66ad3dd1dfddfab2dbebff30";
+const apiUrl = "https://api.openweathermap.org/data/2.5/weather?units=metric&q=";
+
+const searchBox = document.querySelector(".search input");
+const searchBtn = document.querySelector(".search button");
+const weatherIcon = document.querySelector(".weather-icon");
+
+async function checkWeather(city){
+    const response = await fetch(`${apiUrl}${city}&appid=${apiKey}`);
+    if (window.cityClockInterval) { clearInterval(window.cityClockInterval); window.cityClockInterval = null; }
+    if (window.cityClockTimeout) { clearTimeout(window.cityClockTimeout); window.cityClockTimeout = null; }
+
+    if(response.status == 404){
+        document.querySelector(".error").style.display = "block";
+        document.querySelector(".weather").style.display = "none";
+        if (window.cityClockInterval) { clearInterval(window.cityClockInterval); window.cityClockInterval = null; }
+        if (window.cityClockTimeout) { clearTimeout(window.cityClockTimeout); window.cityClockTimeout = null; }
+        document.querySelector(".time").innerText = "";
+    }
+    else{
+        var data = await response.json();
+
+    document.querySelector(".city").innerHTML = data.name;
+    document.querySelector(".temp").innerHTML = Math.round(data.main.temp) + "°C";
+    document.querySelector(".humidity").innerHTML = data.main.humidity + "%";
+    document.querySelector(".wind").innerHTML = Math.round(data.wind.speed) + " mph";
+
+    if(data.weather[0].main == "Clouds"){
+        weatherIcon.src = "images/clouds.png";
+    }
+    else if(data.weather[0].main == "Clear"){
+        weatherIcon.src = "images/clear.png";
+    }
+    else if(data.weather[0].main == "Rain"){
+        weatherIcon.src = "images/rain.png";
+    }
+    else if(data.weather[0].main == "Drizzle"){
+        weatherIcon.src = "images/drizzle.png";
+    }
+    else if(data.weather[0].main == "Mist"){
+        weatherIcon.src = "images/mist.png";
+    }
+       
+    // City-local clock using API timezone: 12-hour HH:MM with AM/PM, aligned to minute boundaries
+    const tzSeconds = data.timezone || 0;
+    if (window.cityClockInterval) { clearInterval(window.cityClockInterval); window.cityClockInterval = null; }
+    if (window.cityClockTimeout) { clearTimeout(window.cityClockTimeout); window.cityClockTimeout = null; }
+    function updateCityClock() {
+        const nowMs = Date.now() + (tzSeconds * 1000);
+        const d = new Date(nowMs);
+        const hh24 = d.getUTCHours();
+        const hh12 = (hh24 % 12) === 0 ? 12 : (hh24 % 12);
+        const ampm = hh24 >= 12 ? "PM" : "AM";
+        const mm = d.getUTCMinutes().toString().padStart(2,"0");
+        document.querySelector(".time").innerText = `${hh12}:${mm} ${ampm}`;
+    }
+    updateCityClock();
+
+    // Schedule the next update at the next minute boundary, then every minute
+    const msToNextMinute = 60000 - (Date.now() % 60000);
+    window.cityClockTimeout = setTimeout(() => {
+        updateCityClock();
+        window.cityClockInterval = setInterval(updateCityClock, 60000);
+        window.cityClockTimeout = null;
+    }, msToNextMinute);
+       
+    document.querySelector(".error").style.display = "none";
+    document.querySelector(".weather").style.display = "block";
+}
+} 
+
+searchBtn.addEventListener("click", ()=>{
+    checkWeather(searchBox.value);
+});
+
+</script>
+
+    </body>
+</html>
